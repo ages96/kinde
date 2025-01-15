@@ -1,0 +1,14 @@
+{
+  "name": "stakesocial-infra",
+  "version": "1.0.0",
+  "description": "Stake custom UI on Kinde",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@kinde/infrastructure": "^0.2.1"
+  }
+}
