@@ -23,7 +23,7 @@ export const EntryPageHeader = ({ logoAltText }) => {
           }
 
           .c-strapline__highlight {
-            color: #ff1493;
+            color: #50C878;
             font-weight: 700;
           }
         `}
@@ -35,11 +35,7 @@ export const EntryPageHeader = ({ logoAltText }) => {
           alt={logoAltText}
         />
         <p className="c-strapline">
-          The <span className="c-strapline__highlight">free</span>,{" "}
-          <span className="c-strapline__highlight">fun</span> and{" "}
-          <span className="c-strapline__highlight">friendly</span>{" "}
-          <span className="c-strapline__highlight">football prediction</span>{" "}
-          game ⚽
+          <span className="c-strapline__highlight">Testing Ages</span>
         </p>
       </header>
     </>

@@ -31,9 +31,9 @@ export const Layout = ({ request, context, children }) => {
             :root {
               ${setKindeDesignerCustomProperties({
                 baseBackgroundColor: "#010101",
-                baseLinkColor: "#ff1493",
+                baseLinkColor: "#50C878",
                 buttonBorderRadius: "2em",
-                primaryButtonBackgroundColor: "#ff1493",
+                primaryButtonBackgroundColor: "#50C878",
                 primaryButtonColor: "#010101",
                 inputBorderRadius: "0px",
                 cardBorderRadius: "0px",
@@ -47,12 +47,12 @@ export const Layout = ({ request, context, children }) => {
                 sans-serif;
 
               --kinde-control-select-text-border-color: #666;
-              --kinde-base-focus-outline-color: #ff1493;
+              --kinde-base-focus-outline-color: #50C878;
 
               --kinde-button-letter-spacing: 0.5px;
 
               --kinde-button-primary-background-color-hover: transparent;
-              --kinde-button-primary-color-hover: #ff1493;
+              --kinde-button-primary-color-hover: #50C878;
             }
             [data-kinde-button-variant="primary"] {
               block-size: 3.75rem;
@@ -60,7 +60,7 @@ export const Layout = ({ request, context, children }) => {
 
             [data-kinde-button-variant="primary"]:hover {
               text-shadow: 0 0 1px rgba(0, 0, 0, 0.8);
-              border-color: #ff1493;
+              border-color: #50C878;
               font-size: 1.2rem;
             }
             .c-header {

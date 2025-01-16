@@ -37,7 +37,7 @@ export const NavTabs = ({ activeTab }) => {
           }
 
           .c-nav-tabs__link.is-active {
-            border-bottom-color: #ff1493;
+            border-bottom-color: #50C878;
             color: #fff;
           }
 
