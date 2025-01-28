@@ -1,8 +1,8 @@
 import { Workflow } from '@kinde-oss/infrastructure';
 
 const passwordStrengthWorkflow: Workflow = {
-  id: 'password-strength-check', // Unique identifier for the workflow
-  trigger: 'user:new_password_provided', // Triggered when a user creates or resets their password
+  id: 'passwordStrengthCheck', // Ensure this is correctly configured in your system
+  trigger: 'user:new_password_provided', // Trigger when a user creates or resets their password
   steps: [
     {
       name: 'Check Password Strength',
