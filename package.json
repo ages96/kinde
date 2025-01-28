@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@kinde/infrastructure": "^0.2.2"
+    "@kinde/infrastructure": "^0.2.2",
+    "package.json": "^2.0.1",
+    "zxcvbn": "^4.4.2"
   }
 }
