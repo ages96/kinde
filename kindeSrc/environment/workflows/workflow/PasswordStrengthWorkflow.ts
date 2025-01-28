@@ -1,5 +1,4 @@
 import { Workflow } from '@kinde-oss/infrastructure';
-import zxcvbn from 'zxcvbn';
 
 const passwordStrengthWorkflow: Workflow = {
   id: 'password-strength-check', // Unique identifier for the workflow
@@ -15,27 +14,27 @@ const passwordStrengthWorkflow: Workflow = {
           throw new Error('Password is required.');
         }
 
-        // Use zxcvbn to evaluate the password strength
-        const result = zxcvbn(password);
-
         // Enforce custom password rules
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasNumber = /[0-9]/.test(password);
-        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
-        // Check password strength using zxcvbn score and custom rules
-        if (result.score < 3) {
-          throw new Error('Password is too weak. Please choose a stronger password.');
+        // Minimum length of 8 characters
+        if (password.length < 8) {
+          throw new Error('Password must be at least 8 characters long.');
         }
 
+        // Check for at least one uppercase letter
+        const hasUpperCase = /[A-Z]/.test(password);
         if (!hasUpperCase) {
           throw new Error('Password must contain at least one uppercase letter.');
         }
 
+        // Check for at least one number
+        const hasNumber = /[0-9]/.test(password);
         if (!hasNumber) {
           throw new Error('Password must contain at least one number.');
         }
 
+        // Check for at least one special character
+        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
         if (!hasSpecialChar) {
           throw new Error('Password must contain at least one special character.');
         }
