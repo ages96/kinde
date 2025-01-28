@@ -1,10 +1,9 @@
 import { Workflow } from '@kinde-oss/infrastructure';
+import zxcvbn from 'zxcvbn';
 
 const passwordStrengthWorkflow: Workflow = {
-  // Define the trigger for the workflow
+  id: 'password-strength-check', // Unique identifier for the workflow
   trigger: 'user_signup', // Adjust this based on your specific trigger
-
-  // Define the workflow steps
   steps: [
     {
       name: 'Check Password Strength',
