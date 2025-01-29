@@ -19,7 +19,7 @@ export const workflowSettings: WorkflowSettings = {
 
 export default async function validatePasswordStrength(context: WorkflowContext) {
   console.log(context);
-  const password = context.user.password;
+  const password = context.auth.firstPassword;
 
   // Validate if the password exists
   if (!password) {
