@@ -23,32 +23,32 @@ export default async function validatePasswordStrength(context: WorkflowContext)
 
   // Validate if the password exists
   if (!password) {
-    kinde.widget.invalidateFormField("password", "Password is required.");
+    kinde.widget.invalidateFormField("p_password", "Password is required.");
     return;
   }
 
   // Enforce custom password rules
   // Minimum length of 8 characters
   if (password.length < 8) {
-    kinde.widget.invalidateFormField("password", "Password must be at least 8 characters long.");
+    kinde.widget.invalidateFormField("p_password", "Password must be at least 8 characters long.");
     return;
   }
 
   // Check for at least one uppercase letter
   if (!/[A-Z]/.test(password)) {
-    kinde.widget.invalidateFormField("password", "Password must contain at least one uppercase letter.");
+    kinde.widget.invalidateFormField("p_password", "Password must contain at least one uppercase letter.");
     return;
   }
 
   // Check for at least one number
   if (!/[0-9]/.test(password)) {
-    kinde.widget.invalidateFormField("password", "Password must contain at least one number.");
+    kinde.widget.invalidateFormField("p_password", "Password must contain at least one number.");
     return;
   }
 
   // Check for at least one special character
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    kinde.widget.invalidateFormField("password", "Password must contain at least one special character.");
+    kinde.widget.invalidateFormField("p_password", "Password must contain at least one special character.");
     return;
   }
 
