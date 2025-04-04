@@ -9,13 +9,15 @@ import { NavTabs } from "../../components/NavTabs";
 import { Layout } from "../../components/Layout";
 
 const PageLayout = async ({ request, context }) => {
+  const dynamicUrl = "https://mydomain.com/terms";
   return (
     <Layout request={request} context={context}>
       <main>
         <div className="c-widget">
           <EntryPageHeader logoAltText={context.widget.content.logoAlt} />
           <NavTabs activeTab="login" />
-          <a href="https://mydomain.com/terms">Check with Static Link</a>
+          
+          <a href={`${dynamicUrl}`}>Check with dynamic link</a>;
           <div>{getKindeWidget()}</div>
         </div>
       </main>
