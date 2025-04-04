@@ -13,6 +13,7 @@ const PageLayout = async ({ request, context }) => {
     <Layout request={request} context={context}>
       <main>
         <div className="c-widget">
+          <a href="https://mydomain.com/terms">Check with Static Link</a>
           <EntryPageHeader logoAltText={context.widget.content.logoAlt} />
           <NavTabs activeTab="login" />
           <div>{getKindeWidget()}</div>
