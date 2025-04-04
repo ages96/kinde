@@ -28,7 +28,6 @@ const PageLayout = async ({ request, context }) => {
               alt={context.widget.content.logo_alt}
             />
           </header>
-          <h2>Testing</h2>
           <h2>{context.widget.content.heading}</h2>
           <p className="c-strapline">{context.widget.content.description} </p>
           <div>{getKindeWidget()}</div>
