@@ -16,7 +16,7 @@ const PageLayout = async ({ request, context }) => {
           <EntryPageHeader logoAltText={context.widget.content.logoAlt} />
           <NavTabs activeTab="login" />
           
-          <a href={`${AGES_TEST_ENV}`}>Check with dynamic link</a>
+          <a href={AGES_TEST_ENV}>Check with dynamic link</a>
           <div>{getKindeWidget()}</div>
         </div>
       </main>
