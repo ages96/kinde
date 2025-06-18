@@ -11,10 +11,10 @@ export const workflowSettings: WorkflowSettings = {
   trigger: WorkflowTrigger.PostAuthentication,
   failurePolicy: { action: "stop" },
   bindings: {
-    "kinde.auth": {},
-    "kinde.secureFetch": {},
-    "kinde.env": {},
-    url: {}
+    "kinde.auth": {},          // enable event.kinde.auth
+    "kinde.secureFetch": {},   // enable event.kinde.secureFetch
+    "kinde.env": {},           // enable event.kinde.env
+    "url": {}                  // required for secureFetch under the hood :contentReference[oaicite:0]{index=0}
   }
 };
 
@@ -23,11 +23,13 @@ export default async function impossibleTravelWorkflow(
 ) {
   console.log("🛠️ Workflow started", {
     userId: event.context.user.id,
-    ip: event.request.ip.split(",")[0].trim(),
+    ip: event.request.ip,
     isNewUser: event.context.auth.isNewUserRecordCreated
   });
 
   const kindeAPI = await event.kinde.auth.createKindeAPI(event);
+  console.log("✅ event.kinde.auth is available");
+
   const { data: user } = await kindeAPI.get({
     endpoint: `user?id=${event.context.user.id}`,
   });
@@ -45,16 +47,14 @@ export default async function impossibleTravelWorkflow(
       ? "account_register"
       : "account_login"
   };
-  console.log("📨 Payload", payload);
+  console.log("📨 Payload prepared", payload);
 
   const resp = await event.kinde.secureFetch(
     "https://api.trustpath.io/v1/risk/evaluate",
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${
-          event.kinde.env.getEnvironmentVariable("TRUSTPATH_API_KEY")?.value
-        }`,
+        Authorization: `Bearer ${event.kinde.env.getEnvironmentVariable("TRUSTPATH_API_KEY")?.value}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
@@ -72,6 +72,6 @@ export default async function impossibleTravelWorkflow(
     denyAccess("Access blocked due to impossible travel risk.");
   } else {
     console.log("✅ Approved — allowing access");
-    //继续流程
+    // Continue normal flow
   }
 }
