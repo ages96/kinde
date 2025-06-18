@@ -13,8 +13,7 @@ export const workflowSettings: WorkflowSettings = {
   bindings: {
     "kinde.auth": {},
     "kinde.secureFetch": {},
-    "kinde.env": {},
-    "kinde.url": {}  
+    "kinde.env": {}
   }
 };
 
@@ -27,7 +26,6 @@ export default async function impossibleTravelWorkflow(
     isNewUser: event.context.auth.isNewUserRecordCreated
   });
 
-  // Ensure these properties are now defined
   const kindeAPI = await event.kinde.auth.createKindeAPI(event);
   console.log("✅ event.kinde.auth is available");
 
