@@ -80,7 +80,7 @@ export default async function handlePostAuth(
     return;
   }
 
-  console.log("TrustPath response", trustData);
+  console.log("TrustPath response", resp.data);
 
   let state: string | undefined;
   try {
