@@ -1,5 +1,5 @@
 import {
-  onPostAuthenticationEvent,
+  definePostAuthenticationWorkflow,
   denyAccess,
   WorkflowSettings,
   WorkflowTrigger,
@@ -13,12 +13,12 @@ export const workflowSettings: WorkflowSettings = {
   bindings: {
     "kinde.auth": {},
     "kinde.secureFetch": {},
-    "kinde.env": {},   // if needed for TRUSTPATH_API_KEY
+    "kinde.env": {},
     url: {}
   }
 };
 
-export default onPostAuthenticationEvent(async (event) => {
+export default definePostAuthenticationWorkflow(async (event) => {
   const kindeAPI = await event.kinde.auth.createKindeAPI(event);
   const { data: user } = await kindeAPI.get({
     endpoint: `user?id=${event.context.user.id}`,
