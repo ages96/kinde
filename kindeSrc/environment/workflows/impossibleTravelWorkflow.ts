@@ -3,6 +3,7 @@ import {
   WorkflowSettings,
   WorkflowTrigger,
   getEnvironmentVariable,
+  createKindeAPI,
   fetch,
   denyAccess,
 } from "@kinde/infrastructure";
@@ -25,11 +26,20 @@ export const workflowSettings: WorkflowSettings = {
 export default async function handlePostAuth(
   event: onPostAuthenticationEvent
 ) {
-  const user = event.context.user;
+  const userId = event.context.user.id;
   const isNew = event.context.auth.isNewUserRecordCreated;
   const ip = event.request.ip?.split(",")[0].trim() ?? "unknown";
 
-  console.log("🛠️ Workflow started", { isNewUser: isNew });
+  console.log("🛠️ Workflow started", { userId, ip, isNewUser: isNew });
+
+  // Initialize Kinde API
+  const kindeAPI = await createKindeAPI(event);
+
+  // Get user details
+  const { data: user } = await kindeAPI.get({
+    endpoint: `user?id=${userId}`,
+  });
+
   console.log("Retrieved user from Kinde", {
     id: user.id,
     email: user.preferred_email,
