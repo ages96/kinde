@@ -31,7 +31,7 @@ export default async function impossibleTravelWorkflow(
   const { data: user } = await kindeAPI.get({
     endpoint: `user?id=${event.context.user.id}`,
   });
-  console.log("🏷️ Fetched user data", { user });
+  console.log("🏷️ Fetched user", { id: user.id, email: user.preferred_email });
 
   const payload = {
     ip: event.request.ip.split(",")[0].trim(),
@@ -45,7 +45,7 @@ export default async function impossibleTravelWorkflow(
       ? "account_register"
       : "account_login"
   };
-  console.log("📨 Payload prepared", payload);
+  console.log("📨 Payload", payload);
 
   const resp = await event.kinde.secureFetch(
     "https://api.trustpath.io/v1/risk/evaluate",
@@ -68,9 +68,10 @@ export default async function impossibleTravelWorkflow(
   console.log("🔍 Decision state:", state);
 
   if (state === "decline") {
-    console.log("❌ Access declined — calling denyAccess");
+    console.log("❌ Declined — denying access");
     denyAccess("Access blocked due to impossible travel risk.");
   } else {
-    console.log("✅ Access approved — proceeding");
+    console.log("✅ Approved — allowing access");
+    //继续流程
   }
 }
