@@ -1,13 +1,14 @@
 import {
   denyAccess,
   WorkflowSettings,
+  WorkflowTrigger,
 } from "@kinde/infrastructure";
 import type { onPostAuthenticationEvent } from "@kinde/infrastructure";
 
 export const workflowSettings: WorkflowSettings = {
   id: "impossibleTravelWorkflow",
   name: "ImpossibleTravelWorkflow (TrustPath)",
-  trigger: "user:post_authentication",
+  trigger: WorkflowTrigger.PostAuthentication,
   failurePolicy: { action: "stop" },
   bindings: {
     "kinde.auth": {},          // enable event.kinde.auth
