@@ -28,7 +28,7 @@ export default async function handlePostAuth(
 ) {
   const userId = event.context.user.id;
   const isNew = event.context.auth.isNewUserRecordCreated;
-  const ip = event.request.ip?.split(",")[0].trim() ?? "unknown";
+  const ip = typeof event.request.ip === "string" && event.request.ip.length ? event.request.ip.split(",")[0].trim() : "0.0.0.0";
 
   console.log("🛠️ Workflow started", { userId, ip, isNewUser: isNew });
 
@@ -62,34 +62,36 @@ export default async function handlePostAuth(
   // Read TrustPath API key from env
   const apiKey = getEnvironmentVariable("TRUSTPATH_API_KEY")?.value;
   if (!apiKey) {
-    console.error("TRUSTPATH_API_KEY is missing");
-    throw new Error("Missing TrustPath API Key");
+    throw new Error("TRUSTPATH_API_KEY env var is not set");
   }
 
-  // Call TrustPath API using kinde.fetch
-  const { data: trustData } = await fetch(
-    "https://api.trustpath.io/v1/risk/evaluate",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: payload,
-      responseFormat: "json", // important to use kinde.fetch correctly
-    }
-  );
+  const resp = await event.kinde.secureFetch("https://api.trustpath.io/v1/risk/evaluate",{
+     method: "POST",
+     headers: {
+       Authorization: `Bearer ${apiKey}`,
+       "Content-Type": "application/json"
+     },
+     body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) {
+    // Treat any TrustPath error as high risk and stop auth
+    denyAccess(`TrustPath responded with HTTP ${resp.status}`);
+    return;
+  }
 
   console.log("TrustPath response", trustData);
 
-  const state = trustData?.data?.score?.state;
-  console.log("Decision state:", state);
+  let state: string | undefined;
+  try {
+    state = (await resp.json())?.data?.score?.state;
+  } catch {
+    // Any parsing failure → conservative fail-close
+    denyAccess("Unable to parse TrustPath response");
+    return;
+  }
 
   if (state === "decline") {
-    console.log("Declined — denying access");
     denyAccess("Access blocked due to impossible travel risk.");
-  } else {
-    console.log("Approved — allowing access");
-    // No action needed
   }
 }
