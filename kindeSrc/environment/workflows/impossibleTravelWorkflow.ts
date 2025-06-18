@@ -15,6 +15,7 @@ export const workflowSettings: WorkflowSettings = {
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
+    "kinde.auth": {},
     "kinde.env": {},     // for env variables
     "kinde.fetch": {},   // for API requests
     "url": {},           // required
