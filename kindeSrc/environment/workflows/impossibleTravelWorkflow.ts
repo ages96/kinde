@@ -7,7 +7,7 @@ import {
 } from "@kinde/infrastructure";
 
 export const workflowSettings: WorkflowSettings = {
-  id: "impossibleTravel",
+  id: "impossibleTravelWorkflow",
   name: "ImpossibleTravelCheck (TrustPath)",
   trigger: WorkflowTrigger.PostAuthentication,
   failurePolicy: { action: "stop" },
@@ -19,7 +19,7 @@ export const workflowSettings: WorkflowSettings = {
   }
 };
 
-export default async function handlePostAuth(event: onPostAuthenticationEvent) {
+export default async function impossibleTravelWorkflow(event: onPostAuthenticationEvent) {
   console.log("🛠️ Workflow started", {
     userId: event.context.user.id,
     ip: event.request.ip,
