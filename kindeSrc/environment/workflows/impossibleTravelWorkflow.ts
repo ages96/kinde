@@ -3,7 +3,6 @@ import {
   WorkflowSettings,
   WorkflowTrigger,
   getEnvironmentVariable,
-  createKindeAPI,
   fetch,
   denyAccess,
 } from "@kinde/infrastructure";
@@ -18,7 +17,7 @@ export const workflowSettings: WorkflowSettings = {
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
     "kinde.env": {},       // for environment variables
-    "kinde.fetch": {},     // required for API requests (formerly secureFetch)
+    "kinde.fetch": {},     // required for API requests
     "url": {},             // required for fetch
   },
 };
@@ -27,25 +26,15 @@ export const workflowSettings: WorkflowSettings = {
 export default async function handlePostAuth(
   event: onPostAuthenticationEvent
 ) {
+  const user = event.context.user;
   const isNewKindeUser = event.context.auth.isNewUserRecordCreated;
-  const userId = event.context.user.id;
   const ip = event.request.ip?.split(",")[0].trim() ?? "unknown";
 
   console.log("🛠️ Workflow started", {
-    userId,
+    userId: user.id,
     ip,
     isNewUser: isNewKindeUser,
   });
-
-  // Get a token for Kinde management API
-  const kindeAPI = await createKindeAPI(event);
-  console.log("✅ Kinde API initialized");
-
-  // Fetch user data
-  const { data: user } = await kindeAPI.get({
-    endpoint: `user?id=${userId}`,
-  });
-  console.log("🏷️ Fetched user", { id: user.id, email: user.preferred_email });
 
   // Prepare TrustPath payload
   const payload = {
@@ -88,6 +77,6 @@ export default async function handlePostAuth(
     denyAccess("Access blocked due to impossible travel risk.");
   } else {
     console.log("✅ Approved — allowing access");
-    // Allow access, no further action needed
+    // Access is allowed
   }
 }
