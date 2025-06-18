@@ -2,9 +2,10 @@ import {
   onPostAuthenticationEvent,
   WorkflowSettings,
   WorkflowTrigger,
-  denyAccess,
   getEnvironmentVariable,
+  createKindeAPI,
   fetch,
+  denyAccess,
 } from "@kinde/infrastructure";
 
 // Workflow settings
@@ -15,74 +16,80 @@ export const workflowSettings: WorkflowSettings = {
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
     "kinde.auth": {},
-    "kinde.env": {},
-    "kinde.fetch": {},
-    "url": {},
+    "kinde.env": {},     // for env variables
+    "kinde.fetch": {},   // for API requests
+    "url": {},           // required
   },
 };
 
 // Workflow logic
-export default onPostAuthenticationEvent(async (event) => {
-  const user = event.context.user;
-  const isNew = event.context.auth?.isNewUserRecordCreated ?? false;
+export default async function handlePostAuth(
+  event: onPostAuthenticationEvent
+) {
+  const userId = event.context.user.id;
+  const isNew = event.context.auth.isNewUserRecordCreated;
+  const ip = event.request.ip?.split(",")[0].trim() ?? "unknown";
 
-  const ip =
-    typeof event.request.ip === "string" && event.request.ip.length
-      ? event.request.ip.split(",")[0].trim()
-      : "0.0.0.0"; // fallback IP
+  console.log("🛠️ Workflow started", { userId, ip, isNewUser: isNew });
 
-  console.log("Workflow started", { userId: user.id, ip, isNewUser: isNew });
+  // Initialize Kinde API
+  const kindeAPI = await createKindeAPI(event);
 
+  // Get user details
+  const { data: user } = await kindeAPI.get({
+    endpoint: `user?id=${userId}`,
+  });
+
+  console.log("Retrieved user from Kinde", {
+    id: user.id,
+    email: user.preferred_email,
+  });
+
+  // Build TrustPath payload
   const payload = {
     ip,
     email: user.preferred_email,
     user: {
       user_id: user.id,
-      first_name: user.first_name ?? "",
-      last_name: user.last_name ?? "",
+      first_name: user.first_name,
+      last_name: user.last_name,
     },
     event_type: isNew ? "account_register" : "account_login",
   };
 
   console.log("Payload prepared", payload);
 
+  // Read TrustPath API key from env
   const apiKey = getEnvironmentVariable("TRUSTPATH_API_KEY")?.value;
   if (!apiKey) {
     console.error("TRUSTPATH_API_KEY is missing");
-    throw new Error("Missing TRUSTPATH_API_KEY environment variable");
+    throw new Error("Missing TrustPath API Key");
   }
 
-  const response = await fetch("https://api.trustpath.io/v1/risk/evaluate", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: payload,
-    responseFormat: "json",
-  });
+  // Call TrustPath API using kinde.fetch
+  const { data: trustData } = await fetch(
+    "https://api.trustpath.io/v1/risk/evaluate",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: payload,
+      responseFormat: "json", // important to use kinde.fetch correctly
+    }
+  );
 
-  if (!response.ok) {
-    console.error("TrustPath returned non-2xx response", response.status);
-    denyAccess(`TrustPath responded with HTTP ${response.status}`);
-    return;
-  }
+  console.log("TrustPath response", trustData);
 
-  let state: string | undefined;
-  try {
-    state = response?.data?.data?.score?.state;
-  } catch (error) {
-    console.error("Failed to parse TrustPath response", error);
-    denyAccess("Unable to parse TrustPath response");
-    return;
-  }
-
+  const state = trustData?.data?.score?.state;
   console.log("Decision state:", state);
 
   if (state === "decline") {
-    console.warn("Access declined due to risk score");
+    console.log("Declined — denying access");
     denyAccess("Access blocked due to impossible travel risk.");
   } else {
-    console.log("Access approved by TrustPath");
+    console.log("Approved — allowing access");
+    // No action needed
   }
-});
+}
