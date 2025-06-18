@@ -65,7 +65,7 @@ export default async function handlePostAuth(
     throw new Error("TRUSTPATH_API_KEY env var is not set");
   }
 
-  const resp = await event.kinde.secureFetch("https://api.trustpath.io/v1/risk/evaluate",{
+  const resp = await fetch("https://api.trustpath.io/v1/risk/evaluate",{
      method: "POST",
      headers: {
        Authorization: `Bearer ${apiKey}`,
