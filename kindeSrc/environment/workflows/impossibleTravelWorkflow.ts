@@ -6,14 +6,15 @@ import {
 import type { onPostAuthenticationEvent } from "@kinde/infrastructure";
 
 export const workflowSettings: WorkflowSettings = {
-  id: "impossibleTravelWorkflow",
-  name: "ImpossibleTravelWorkflow",
+  id: "impossibleTravelCheck",
+  name: "ImpossibleTravelCheck (TrustPath)",
   trigger: WorkflowTrigger.PostAuthentication,
   failurePolicy: { action: "stop" },
   bindings: {
-    "kinde.auth": {},
-    "kinde.secureFetch": {},
-    "kinde.env": {}
+    "kinde.auth": {},          // enable event.kinde.auth
+    "kinde.secureFetch": {},   // enable event.kinde.secureFetch
+    "kinde.env": {},           // enable event.kinde.env
+    "url": {}                  // required for secureFetch under the hood :contentReference[oaicite:0]{index=0}
   }
 };
 
@@ -40,7 +41,7 @@ export default async function impossibleTravelWorkflow(
     user: {
       user_id: user.id,
       first_name: user.first_name,
-      last_name: user.last_name,
+      last_name: user.last_name
     },
     event_type: event.context.auth.isNewUserRecordCreated
       ? "account_register"
@@ -53,9 +54,7 @@ export default async function impossibleTravelWorkflow(
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${event.kinde.env
-          .getEnvironmentVariable("TRUSTPATH_API_KEY")
-          ?.value}`,
+        Authorization: `Bearer ${event.kinde.env.getEnvironmentVariable("TRUSTPATH_API_KEY")?.value}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
@@ -73,5 +72,6 @@ export default async function impossibleTravelWorkflow(
     denyAccess("Access blocked due to impossible travel risk.");
   } else {
     console.log("✅ Approved — allowing access");
+    // Continue normal flow
   }
 }
