@@ -3,6 +3,7 @@ import {
   WorkflowSettings,
   WorkflowTrigger,
   getEnvironmentVariable,
+  createKindeAPI,
   fetch,
   denyAccess,
 } from "@kinde/infrastructure";
@@ -14,26 +15,36 @@ export const workflowSettings: WorkflowSettings = {
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
-    "kinde.env": {},     // Environment variables
-    "kinde.fetch": {},   // External API calls
-    "url": {},           // Required under the hood
+    "kinde.env": {},     // for env variables
+    "kinde.fetch": {},   // for API requests
+    "url": {},           // required
   },
 };
 
-// The workflow logic
+// Workflow logic
 export default async function handlePostAuth(
   event: onPostAuthenticationEvent
 ) {
-  const user = event.context.user;
+  const userId = event.context.user.id;
   const isNew = event.context.auth.isNewUserRecordCreated;
   const ip = event.request.ip?.split(",")[0].trim() ?? "unknown";
 
-  console.log("🛠️ Workflow started", {
-    userId: user.id,
-    ip,
-    isNewUser: isNew,
+  console.log("🛠️ Workflow started", { userId, ip, isNewUser: isNew });
+
+  // Initialize Kinde API
+  const kindeAPI = await createKindeAPI(event);
+
+  // Get user details
+  const { data: user } = await kindeAPI.get({
+    endpoint: `user?id=${userId}`,
   });
 
+  console.log("📄 Retrieved user from Kinde", {
+    id: user.id,
+    email: user.preferred_email,
+  });
+
+  // Build TrustPath payload
   const payload = {
     ip,
     email: user.preferred_email,
@@ -44,15 +55,17 @@ export default async function handlePostAuth(
     },
     event_type: isNew ? "account_register" : "account_login",
   };
+
   console.log("📨 Payload prepared", payload);
 
+  // Read TrustPath API key from env
   const apiKey = getEnvironmentVariable("TRUSTPATH_API_KEY")?.value;
   if (!apiKey) {
-    console.error("❗ Missing TRUSTPATH_API_KEY in environment variables");
+    console.error("❗ TRUSTPATH_API_KEY is missing");
     throw new Error("Missing TrustPath API Key");
   }
 
-  // ✅ Use kinde.fetch with responseFormat "json"
+  // Call TrustPath API using kinde.fetch
   const { data: trustData } = await fetch(
     "https://api.trustpath.io/v1/risk/evaluate",
     {
@@ -62,7 +75,7 @@ export default async function handlePostAuth(
         "Content-Type": "application/json",
       },
       body: payload,
-      responseFormat: "json", // required for Kinde's fetch binding :contentReference[oaicite:1]{index=1}
+      responseFormat: "json", // important to use kinde.fetch correctly
     }
   );
 
@@ -76,6 +89,6 @@ export default async function handlePostAuth(
     denyAccess("Access blocked due to impossible travel risk.");
   } else {
     console.log("✅ Approved — allowing access");
-    // Access granted
+    // No action needed
   }
 }
