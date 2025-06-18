@@ -7,7 +7,7 @@ import type { onPostAuthenticationEvent } from "@kinde/infrastructure";
 
 export const workflowSettings: WorkflowSettings = {
   id: "impossibleTravelWorkflow",
-  name: "ImpossibleTravelWorkflow (TrustPath)",
+  name: "ImpossibleTravelWorkflow",
   trigger: WorkflowTrigger.PostAuthentication,
   failurePolicy: { action: "stop" },
   bindings: {
