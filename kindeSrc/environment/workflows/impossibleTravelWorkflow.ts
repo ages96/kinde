@@ -30,7 +30,7 @@ export default async function handlePostAuth(
   const isNew = event.context.auth.isNewUserRecordCreated;
   const ip = event.request.ip?.split(",")[0].trim() ?? "unknown";
 
-  console.log("🛠️ Workflow started", { userId, ip, isNewUser: isNew });
+  console.log("Workflow started", { userId, ip, isNewUser: isNew });
 
   // Initialize Kinde API
   const kindeAPI = await createKindeAPI(event);
@@ -66,23 +66,35 @@ export default async function handlePostAuth(
     throw new Error("Missing TrustPath API Key");
   }
 
-  // Call TrustPath API using kinde.fetch
-  const { data: trustData } = await fetch(
-    "https://api.trustpath.io/v1/risk/evaluate",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: payload,
-      responseFormat: "json", // important to use kinde.fetch correctly
+  let state: string | undefined;
+
+  try {
+    const { data: trustData } = await fetch(
+      "https://api.trustpath.io/v1/risk/evaluate",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: payload,
+        responseFormat: "json",
+      }
+    );
+
+    console.log("TrustPath response", trustData);
+
+    state = trustData?.data?.score?.state;
+
+    if (typeof state !== "string") {
+      throw new Error("Invalid state format in TrustPath response");
     }
-  );
+  } catch (error) {
+    console.error("Error during TrustPath evaluation", error);
+    denyAccess("Unable to evaluate login risk. Access blocked.");
+    return;
+  }
 
-  console.log("TrustPath response", trustData);
-
-  const state = trustData?.data?.score?.state;
   console.log("Decision state:", state);
 
   if (state === "decline") {
@@ -90,6 +102,5 @@ export default async function handlePostAuth(
     denyAccess("Access blocked due to impossible travel risk.");
   } else {
     console.log("Approved — allowing access");
-    // No action needed
   }
 }
