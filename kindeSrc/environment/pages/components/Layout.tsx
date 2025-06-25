@@ -28,10 +28,10 @@ export const Layout = ({ request, context, children }) => {
           {`
             :root {
               ${setKindeDesignerCustomProperties({
-                baseBackgroundColor: "#010101",
+                baseBackgroundColor: "#fffff",
                 baseLinkColor: "#50C878",
                 buttonBorderRadius: "2em",
-                primaryButtonBackgroundColor: "#50C878",
+                primaryButtonBackgroundColor: "#010101",
                 primaryButtonColor: "#010101",
                 inputBorderRadius: "0px",
                 cardBorderRadius: "0px",
