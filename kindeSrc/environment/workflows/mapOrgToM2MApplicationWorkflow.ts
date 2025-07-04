@@ -23,47 +23,12 @@ export const workflowSettings: WorkflowSettings = {
 
 export default async function Workflow(event: onM2MTokenGeneratedEvent) {
   console.log('event:', event);
-  console.log('Auth info:', JSON.stringify(event?.request?.auth, null, 2));
-
-  let kindeAPI;
-  try {
-    kindeAPI = await createKindeAPI(event);
-  } catch (err) {
-    console.error('❌ Failed to create Kinde API client:', err);
-    throw err;
-  }
-
-  const clientId = event?.context?.application?.clientId;
-  if (!clientId) {
-    console.error('❌ clientId is missing from event context.');
-    throw new Error('Missing clientId in event context.');
-  }
-
-  let data;
-  try {
-    const response = await kindeAPI.get({ endpoint: `applications/${clientId}/properties` });
-    data = response.data;
-    console.log('✅ Retrieved application properties:', data);
-  } catch (err) {
-    console.error(`❌ Failed to fetch properties for clientId ${clientId}:`, err);
-    throw err;
-  }
-
-  if (!Array.isArray(data?.properties)) {
-    console.warn('⚠️ No properties found in response.');
-  }
-
-  const externalOrganizationId = data.properties?.find(
-    (prop) => prop.key === 'external_organization_id'
-  );
-
+  const kindeAPI = await createKindeAPI(event);
+  const { clientId } = event.context.application;
+  const { data } = await kindeAPI.get({ endpoint: `applications/${clientId}/properties` });
+  console.log('data:', data);
+  const externalOrganizationId = data.properties?.find((prop) => prop.key === 'external_organization_id');
   console.log('externalOrganizationId:', externalOrganizationId);
-
   const m2mToken = m2mTokenClaims<{ external_organization_id?: string }>();
-  if (externalOrganizationId?.value) {
-    m2mToken.external_organization_id = externalOrganizationId.value;
-    console.log(`✅ Set external_organization_id: ${externalOrganizationId.value}`);
-  } else {
-    console.warn('⚠️ external_organization_id not found in application properties.');
-  }
+  m2mToken.external_organization_id = externalOrganizationId?.value;
 }
