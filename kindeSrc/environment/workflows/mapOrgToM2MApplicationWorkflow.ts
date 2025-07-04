@@ -23,6 +23,7 @@ export const workflowSettings: WorkflowSettings = {
 
 export default async function Workflow(event: onM2MTokenGeneratedEvent) {
   console.log('event:', event);
+  console.log('Auth info:', JSON.stringify(event?.request?.auth, null, 2));
 
   let kindeAPI;
   try {
