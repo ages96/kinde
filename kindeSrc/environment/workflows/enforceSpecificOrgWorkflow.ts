@@ -20,36 +20,42 @@ export const workflowSettings: WorkflowSettings = {
   },
 };
 
-export default async function handlePostAuth(
-  event: onPostAuthenticationEvent
-) {
+export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const userId = event.context.user.id;
+
   const allowedOrgCode = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
 
   if (!allowedOrgCode) {
-    console.error("Missing ALLOWED_ORG_CODE");
+    console.error("Missing environment variable: ALLOWED_ORG_CODE");
     denyAccess("Server misconfigured — contact support.");
     return;
   }
 
-  const kindeAPI = await createKindeAPI(event);
+  console.log("Org Enforcement Started", { userId, allowedOrgCode });
 
-  const { data: memberships } = await kindeAPI.get({
-    endpoint: `organization/memberships?user_id=${userId}`,
+  const kindeAPI = await createKindeAPI(event);
+  const { data: user } = await kindeAPI.get({
+    endpoint: `user?id=${userId}`,
   });
 
-  console.log("Membership", memberships);
+  const organizations = Array.isArray(user.organizations)
+    ? user.organizations
+    : [];
 
-  const userOrgCodes = memberships?.map((m: any) => m.organization.code) || [];
+  const userOrgCodes = organizations.map((org: any) => org.code);
 
-  console.log("User org codes:", userOrgCodes);
+  console.log("User details:", {
+    email: user.preferred_email,
+    userOrgCodes,
+  });
 
   const isMember = userOrgCodes.includes(allowedOrgCode);
 
   if (!isMember) {
+    console.warn(`Access denied: user is not in org: ${allowedOrgCode}`);
     denyAccess(`Access denied. You must belong to: ${allowedOrgCode}`);
     return;
   }
 
-  console.log("Access granted.");
+  console.log("Access granted — user is in the correct organization.");
 }
