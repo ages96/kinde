@@ -3,21 +3,20 @@ import {
   WorkflowSettings,
   WorkflowTrigger,
   createKindeAPI,
+  getEnvironmentVariable,
   denyAccess,
 } from "@kinde/infrastructure";
-
-// Specify which org is allowed
-const ALLOWED_ORG_CODE = "org_16f731167a64a";
 
 // Workflow settings
 export const workflowSettings: WorkflowSettings = {
   id: "enforceSpecificOrgWorkflow",
-  name: "Enforce Specific Org Membership",
+  name: "Enforce Specific Org Membership (ENV-based)",
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
     "kinde.auth": {},
     "kinde.fetch": {},
+    "kinde.env": {},   // ← Required for env access
     "url": {},
   },
 };
@@ -28,34 +27,40 @@ export default async function handlePostAuth(
 ) {
   const userId = event.context.user.id;
 
-  console.log("Org Enforcement Workflow Started", {
+  // Load allowed org code from env
+  const allowedOrgCode = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
+
+  if (!allowedOrgCode) {
+    console.error("Missing environment variable: ALLOWED_ORG_CODE");
+    denyAccess("Server misconfigured — contact support.");
+    return;
+  }
+
+  console.log("Org Enforcement Started", {
     userId,
-    allowedOrg: ALLOWED_ORG_CODE,
+    allowedOrgCode,
   });
 
-  // Initialize Kinde API
   const kindeAPI = await createKindeAPI(event);
 
-  // Fetch user details including orgs
   const { data: user } = await kindeAPI.get({
     endpoint: `user?id=${userId}`,
   });
 
   const userOrgCodes = user.organizations?.map((org: any) => org.code) || [];
 
-  console.log("User organizations:", userOrgCodes);
+  console.log("User details:", {
+    email: user.preferred_email,
+    userOrgCodes,
+  });
 
-  const isMember = userOrgCodes.includes(ALLOWED_ORG_CODE);
+  const isMember = userOrgCodes.includes(allowedOrgCode);
 
   if (!isMember) {
-    console.warn(
-      `Access denied. User ${user.preferred_email} does not belong to org: ${ALLOWED_ORG_CODE}`
-    );
-    denyAccess(
-      `Access denied. You must be a member of the organization: ${ALLOWED_ORG_CODE}`
-    );
+    console.warn(`Access denied: user is not in org: ${allowedOrgCode}`);
+    denyAccess(`Access denied. You must belong to: ${allowedOrgCode}`);
     return;
   }
 
-  console.log("Access granted. User is a member of the required organization.");
+  console.log("Access granted — user is in the correct organization.");
 }
