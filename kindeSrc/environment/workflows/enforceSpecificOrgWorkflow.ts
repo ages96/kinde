@@ -43,12 +43,10 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
 
   console.log("Org Enforcement Started", { userId, orgCodeParam, allowedOrgCodes });
   console.log("User info", {
-    orgs: organizations,
     email
   });
 
   const isWhitelisted = allowedOrgCodes.includes(orgCodeParam);
-  const isMember = userOrgCodes.includes(orgCodeParam);
 
   if (!isWhitelisted) {
     console.warn(`Access denied: org ${orgCodeParam} is not in ALLOWED_ORG_CODE`);
