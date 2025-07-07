@@ -7,8 +7,8 @@ import {
 } from "@kinde/infrastructure";
 
 export const workflowSettings: WorkflowSettings = {
-  id: "enforceSpecificOrgWorkflow",
-  name: "Enforce Specific Org Membership (ENV-based)",
+  id: "enforceWhitelistedOrgWorkflow",
+  name: "Enforce Whitelisted Org Membership",
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
@@ -22,33 +22,48 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const userId = user.id;
   const email = user.preferred_email || user.email;
 
-  const allowedOrgCode = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
+  const orgCodeParam = event.request?.authUrlParams?.orgCode;
 
-  console.log("Event",event)
+  const allowedOrgCodesStr = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
 
-  if (!allowedOrgCode) {
+  if (!allowedOrgCodesStr) {
     console.error("Missing environment variable: ALLOWED_ORG_CODE");
     denyAccess("Server misconfigured — contact support.");
+    return;
+  }
+
+  const allowedOrgCodes = allowedOrgCodesStr.split(",").map(code => code.trim());
+
+  if (!orgCodeParam) {
+    console.warn("No orgCode provided in login params.");
+    denyAccess("Missing organization context.");
     return;
   }
 
   const organizations = Array.isArray(user.organizations) ? user.organizations : [];
   const userOrgCodes = organizations.map((org: any) => org.code);
 
-  console.log("Org Enforcement Started", { userId, allowedOrgCode });
+  console.log("Org Enforcement Started", { userId, orgCodeParam, allowedOrgCodes });
   console.log("User info", {
     orgs: organizations,
     email,
     userOrgCodes,
   });
 
-  const isMember = userOrgCodes.includes(allowedOrgCode);
+  const isWhitelisted = allowedOrgCodes.includes(orgCodeParam);
+  const isMember = userOrgCodes.includes(orgCodeParam);
 
-  if (!isMember) {
-    console.warn(`Access denied: user not in org ${allowedOrgCode}`);
-    denyAccess(`Access denied. You must belong to organization: ${allowedOrgCode}`);
+  if (!isWhitelisted) {
+    console.warn(`Access denied: org ${orgCodeParam} is not in ALLOWED_ORG_CODE`);
+    denyAccess("Access denied. Organization is not permitted.");
     return;
   }
 
-  console.log("✅ Access granted — user is in the correct organization.");
+  if (!isMember) {
+    console.warn(`Access denied: user not a member of org ${orgCodeParam}`);
+    denyAccess(`Access denied. You must belong to organization: ${orgCodeParam}`);
+    return;
+  }
+
+  console.log("✅ Access granted — user is in a whitelisted organization and a valid member.");
 }
