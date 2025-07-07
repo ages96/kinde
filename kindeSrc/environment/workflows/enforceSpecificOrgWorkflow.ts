@@ -2,57 +2,68 @@ import {
   onPostAuthenticationEvent,
   WorkflowSettings,
   WorkflowTrigger,
-  getEnvironmentVariable,
+  createKindeAPI,
   denyAccess,
 } from "@kinde/infrastructure";
 
 export const workflowSettings: WorkflowSettings = {
-  id: "enforceSpecificOrgWorkflow",
-  name: "Enforce Whitelisted Org Membership",
+  id: "enforceAppOrgMapping",
+  name: "Enforce Org Per App (PostAuth)",
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
     "kinde.auth": {},
-    "kinde.env": {},
+    "kinde.fetch": {}, // Required for API calls
   },
 };
 
 export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const user = event.context.user;
-  const userId = user.id;
-  const email = user.preferred_email || user.email;
-
+  const clientId = event.client_id;
   const orgCodeParam = event.request?.authUrlParams?.orgCode;
 
-  const allowedOrgCodesStr = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
-
-  if (!allowedOrgCodesStr) {
-    console.error("Missing environment variable: ALLOWED_ORG_CODE");
-    denyAccess("Server misconfigured — contact support.");
+  if (!clientId) {
+    console.error("Missing client_id");
+    denyAccess("Invalid client context.");
     return;
   }
 
-  const allowedOrgCodes = allowedOrgCodesStr.split(",").map(code => code.trim());
-
   if (!orgCodeParam) {
-    console.warn("No orgCode provided in login params.");
+    console.warn("Missing orgCode in request params.");
     denyAccess("Missing organization context.");
     return;
   }
 
-
-  console.log("Org Enforcement Started", { userId, orgCodeParam, allowedOrgCodes });
-  console.log("User info", {
-    email
+  // Use Kinde Management API to fetch app properties
+  const kindeAPI = await createKindeAPI(event);
+  const { data } = await kindeAPI.get({
+    endpoint: `applications/${clientId}/properties`,
   });
 
-  const isWhitelisted = allowedOrgCodes.includes(orgCodeParam);
+  const appProperties = data?.appProperties || [];
+  const orgCodeProp = appProperties.find(p => p.key === "org_code");
 
-  if (!isWhitelisted) {
-    console.warn(`Access denied: org ${orgCodeParam} is not in ALLOWED_ORG_CODE`);
-    denyAccess("Access denied. Organization is not permitted.");
+  if (!orgCodeProp) {
+    console.warn(`No 'org_code' property set for app ${clientId}`);
+    denyAccess("App not configured with organization restriction.");
     return;
   }
 
-  console.log("✅ Access granted — This is in a whitelisted organization.");
+  const expectedOrgCode = orgCodeProp.value;
+
+  console.log("Org Enforcement Check", {
+    userId: user.id,
+    email: user.email,
+    clientId,
+    orgCodeParam,
+    expectedOrgCode,
+  });
+
+  if (orgCodeParam !== expectedOrgCode) {
+    console.warn(`Access denied: org '${orgCodeParam}' ≠ expected '${expectedOrgCode}'`);
+    denyAccess("Access denied. Organization mismatch.");
+    return;
+  }
+
+  console.log("✅ Access granted — org matches expected for this app.");
 }
