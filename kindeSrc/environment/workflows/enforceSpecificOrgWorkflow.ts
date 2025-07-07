@@ -6,7 +6,6 @@ import {
   denyAccess,
 } from "@kinde/infrastructure";
 
-// Workflow settings
 export const workflowSettings: WorkflowSettings = {
   id: "enforceSpecificOrgWorkflow",
   name: "Enforce Specific Org Membership (ENV-based)",
@@ -18,12 +17,14 @@ export const workflowSettings: WorkflowSettings = {
   },
 };
 
-// Workflow logic
 export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const user = event.context.user;
-  const userId = user?.id;
+  const userId = user.id;
+  const email = user.preferred_email || user.email;
 
   const allowedOrgCode = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
+
+  console.log("Event",event)
 
   if (!allowedOrgCode) {
     console.error("Missing environment variable: ALLOWED_ORG_CODE");
@@ -31,18 +32,19 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
     return;
   }
 
+  const organizations = Array.isArray(user.organizations) ? user.organizations : [];
+  const userOrgCodes = organizations.map((org: any) => org.code);
+
   console.log("Org Enforcement Started", { userId, allowedOrgCode });
-
-  const orgs = Array.isArray(user?.organizations) ? user.organizations : [];
-  const userOrgCodes = orgs.map((org: any) => org.code);
-
   console.log("User info", {
-    email: user?.preferred_email,
-    orgs,
+    orgs: organizations,
+    email,
     userOrgCodes,
   });
 
-  if (!userOrgCodes.includes(allowedOrgCode)) {
+  const isMember = userOrgCodes.includes(allowedOrgCode);
+
+  if (!isMember) {
     console.warn(`Access denied: user not in org ${allowedOrgCode}`);
     denyAccess(`Access denied. You must belong to organization: ${allowedOrgCode}`);
     return;
