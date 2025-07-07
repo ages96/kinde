@@ -9,7 +9,7 @@ import {
 
 export const workflowSettings: WorkflowSettings = {
   id: "enforceSpecificOrgWorkflow",
-  name: "Enforce Specific Org Membership (ENV-based)",
+  name: "Enforce Specific Org Membership (via metadata + env)",
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
@@ -32,18 +32,27 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
 
   console.log("Org Enforcement Started", { userId, allowedOrgCode });
 
-  const organizations = Array.isArray(event.context.user.organizations)
-    ? event.context.user.organizations
-    : [];
+  const kindeAPI = await createKindeAPI(event);
 
-  const userOrgCodes = organizations.map((org: any) => org.code);
-
-  console.log("User details:", {
-    email: event.context.user.preferred_email,
-    userOrgCodes,
+  // Fetch full user record including metadata
+  const { data: user } = await kindeAPI.get({
+    endpoint: `user?id=${userId}`,
   });
 
-  const isMember = userOrgCodes.includes(allowedOrgCode);
+  if (!user) {
+    console.error("Failed to fetch user details from Kinde API");
+    denyAccess("Unable to verify user.");
+    return;
+  }
+
+  const userOrgCode = user.user_metadata?.org_code;
+
+  console.log("User details:", {
+    email: user.preferred_email,
+    userOrgCode,
+  });
+
+  const isMember = userOrgCode === allowedOrgCode;
 
   if (!isMember) {
     console.warn(`Access denied: user is not in org: ${allowedOrgCode}`);
