@@ -7,60 +7,37 @@ import {
   denyAccess,
 } from "@kinde/infrastructure";
 
-// Workflow settings
 export const workflowSettings: WorkflowSettings = {
-  id: "enforceSpecificOrgWorkflow",
-  name: "Enforce Specific Org Membership (ENV-based)",
+  id: "restrictOrgAccessWorkflow",
+  name: "Restrict Org per App",
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
     "kinde.auth": {},
+    "kinde.env": {},
     "kinde.fetch": {},
-    "kinde.env": {},   // ← Required for env access
     "url": {},
   },
 };
 
-// Workflow logic
 export default async function handlePostAuth(
   event: onPostAuthenticationEvent
 ) {
   const userId = event.context.user.id;
-
-  // Load allowed org code from env
-  const allowedOrgCode = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
-
-  if (!allowedOrgCode) {
-    console.error("Missing environment variable: ALLOWED_ORG_CODE");
-    denyAccess("Server misconfigured — contact support.");
-    return;
-  }
-
-  console.log("Org Enforcement Started", {
-    userId,
-    allowedOrgCode,
-  });
-
   const kindeAPI = await createKindeAPI(event);
 
-  const { data: user } = await kindeAPI.get({
-    endpoint: `user?id=${userId}`,
-  });
-
-  const userOrgCodes = user.organizations?.map((org: any) => org.code) || [];
-
-  console.log("User details:", {
-    email: user.preferred_email,
-    userOrgCodes,
-  });
-
-  const isMember = userOrgCodes.includes(allowedOrgCode);
-
-  if (!isMember) {
-    console.warn(`Access denied: user is not in org: ${allowedOrgCode}`);
-    denyAccess(`Access denied. You must belong to: ${allowedOrgCode}`);
+  const allowedOrg = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
+  if (!allowedOrg) {
+    console.error("Missing ALLOWED_ORG_CODE");
+    denyAccess("Access misconfigured — contact support.");
     return;
   }
 
-  console.log("Access granted — user is in the correct organization.");
+  const { data: user } = await kindeAPI.get({ endpoint: `user?id=${userId}` });
+  const userOrgCodes = user.organizations?.map((org: any) => org.code) || [];
+
+  if (!userOrgCodes.includes(allowedOrg)) {
+    console.warn(`Access denied: ${user.preferred_email} not in ${allowedOrg}`);
+    denyAccess("You do not have permission to access this app.");
+  }
 }
