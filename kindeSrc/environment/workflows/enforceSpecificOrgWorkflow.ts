@@ -40,14 +40,11 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
     return;
   }
 
-  const organizations = Array.isArray(user.organizations) ? user.organizations : [];
-  const userOrgCodes = organizations.map((org: any) => org.code);
 
   console.log("Org Enforcement Started", { userId, orgCodeParam, allowedOrgCodes });
   console.log("User info", {
     orgs: organizations,
-    email,
-    userOrgCodes,
+    email
   });
 
   const isWhitelisted = allowedOrgCodes.includes(orgCodeParam);
@@ -59,11 +56,5 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
     return;
   }
 
-  if (!isMember) {
-    console.warn(`Access denied: user not a member of org ${orgCodeParam}`);
-    denyAccess(`Access denied. You must belong to organization: ${orgCodeParam}`);
-    return;
-  }
-
-  console.log("✅ Access granted — user is in a whitelisted organization and a valid member.");
+  console.log("✅ Access granted — This is in a whitelisted organization.");
 }
