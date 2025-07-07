@@ -38,6 +38,8 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
     endpoint: `user?id=${userId}`,
   });
 
+  console.log("User",user);
+
   const organizations = Array.isArray(user.organizations)
     ? user.organizations
     : [];
