@@ -20,9 +20,8 @@ export default async function handleTokenGenerated(event: onUserTokenGeneratedEv
   const userId = user?.id;
   const email = user?.preferred_email || user?.email || "unknown";
   const clientId = event.client_id;
-  const orgCodeParam = event.context.organization?.code;
-
   console.log("Event",event);
+  const orgCodeParam = event.context.organization?.code;
 
   // Define allowed orgs per app by client_id
   const allowedOrgByClientId: Record<string, string> = {
