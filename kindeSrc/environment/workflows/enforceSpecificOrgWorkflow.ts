@@ -38,6 +38,8 @@ export default async function handlePostAuth(
     endpoint: `organization/memberships?user_id=${userId}`,
   });
 
+  console.log("Membership", memberships);
+
   const userOrgCodes = memberships?.map((m: any) => m.organization.code) || [];
 
   console.log("User org codes:", userOrgCodes);
