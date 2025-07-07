@@ -2,37 +2,39 @@ import {
   onPostAuthenticationEvent,
   WorkflowSettings,
   WorkflowTrigger,
-  getEnvironmentVariable,
   denyAccess,
 } from "@kinde/infrastructure";
 
 export const workflowSettings: WorkflowSettings = {
-  id: "enforceSpecificOrgWorkflow",
-  name: "Enforce Whitelisted Org Membership",
+  id: "enforceAppOrgIsolation",
+  name: "Enforce App-to-Org Restriction",
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
     "kinde.auth": {},
-    "kinde.env": {},
   },
 };
 
 export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const user = event.context.user;
-  const userId = user.id;
-  const email = user.preferred_email || user.email;
-
+  const userId = user?.id;
+  const email = user?.preferred_email || user?.email || "unknown";
+  const clientId = event.client_id;
   const orgCodeParam = event.request?.authUrlParams?.orgCode;
 
-  const allowedOrgCodesStr = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
+  // Define allowed orgs per app by client_id
+  const allowedOrgByClientId: Record<string, string> = {
+    // Replace with your real client IDs and org codes
+    "356594637d424f898f233fa903510550": "org_8641d01cc9d",
+    "85a80df21ff34367a5891535b931b877": "org_98bd6219909a0",
+  };
 
-  if (!allowedOrgCodesStr) {
-    console.error("Missing environment variable: ALLOWED_ORG_CODE");
-    denyAccess("Server misconfigured — contact support.");
+  // Validate input
+  if (!clientId) {
+    console.error("Missing client_id in event.");
+    denyAccess("App misconfiguration.");
     return;
   }
-
-  const allowedOrgCodes = allowedOrgCodesStr.split(",").map(code => code.trim());
 
   if (!orgCodeParam) {
     console.warn("No orgCode provided in login params.");
@@ -40,19 +42,30 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
     return;
   }
 
+  const expectedOrgCode = allowedOrgByClientId[clientId];
 
-  console.log("Org Enforcement Started", { userId, orgCodeParam, allowedOrgCodes });
-  console.log("User info", {
-    email
-  });
-
-  const isWhitelisted = allowedOrgCodes.includes(orgCodeParam);
-
-  if (!isWhitelisted) {
-    console.warn(`Access denied: org ${orgCodeParam} is not in ALLOWED_ORG_CODE`);
-    denyAccess("Access denied. Organization is not permitted.");
+  if (!expectedOrgCode) {
+    console.error(`Unknown client_id '${clientId}' — not mapped to any org.`);
+    denyAccess("Unauthorized app.");
     return;
   }
 
-  console.log("✅ Access granted — This is in a whitelisted organization.");
+  const isValidOrg = orgCodeParam === expectedOrgCode;
+
+  console.log("App Org Enforcement", {
+    userId,
+    email,
+    clientId,
+    orgCodeParam,
+    expectedOrgCode,
+    isValidOrg,
+  });
+
+  if (!isValidOrg) {
+    console.warn(`Access denied: org '${orgCodeParam}' does not match expected '${expectedOrgCode}'`);
+    denyAccess("Access denied. This app is restricted to a specific organization.");
+    return;
+  }
+
+  console.log("Access granted — Org matches allowed org for this app.");
 }
