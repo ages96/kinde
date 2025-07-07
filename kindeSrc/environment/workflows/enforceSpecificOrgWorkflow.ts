@@ -22,7 +22,6 @@ export const workflowSettings: WorkflowSettings = {
 
 export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const userId = event.context.user.id;
-
   const allowedOrgCode = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
 
   if (!allowedOrgCode) {
@@ -33,21 +32,14 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
 
   console.log("Org Enforcement Started", { userId, allowedOrgCode });
 
-  const kindeAPI = await createKindeAPI(event);
-  const { data: user } = await kindeAPI.get({
-    endpoint: `user?id=${userId}`,
-  });
-
-  console.log("User",user);
-
-  const organizations = Array.isArray(user.organizations)
-    ? user.organizations
+  const organizations = Array.isArray(event.context.user.organizations)
+    ? event.context.user.organizations
     : [];
 
   const userOrgCodes = organizations.map((org: any) => org.code);
 
   console.log("User details:", {
-    email: user.preferred_email,
+    email: event.context.user.preferred_email,
     userOrgCodes,
   });
 
