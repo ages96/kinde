@@ -1,7 +1,6 @@
 import {
   onUserTokenGeneratedEvent,
   WorkflowSettings,
-  WorkflowTrigger,
   denyAccess,
 } from "@kinde/infrastructure";
 
@@ -9,7 +8,7 @@ export const workflowSettings: WorkflowSettings = {
   id: "enforceAppOrgIsolation",
   name: "Enforce App-to-Org Restriction",
   failurePolicy: { action: "stop" },
-  trigger: WorkflowTrigger.UserTokenGenerated,
+  trigger: "user:tokens_generation",
   bindings: {
     "kinde.auth": {},
   },
