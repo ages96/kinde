@@ -41,18 +41,17 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   console.log("[Kinde API] URL called:", url);
 
   try {
-    const response = await fetch(url,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${secretToken}`,
-        },
-      }
-    );
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${secretToken}`,
+      },
+    });
 
     if (response.ok) {
       const json = await response.json();
-      userOrgCodes = json.organizations?.map((org: any) => org.code) || [];
+      // ← organizations is an array of strings directly
+      userOrgCodes = json.organizations || [];
     } else {
       console.warn("Failed to fetch user orgs from Kinde API:", response.statusText);
     }
