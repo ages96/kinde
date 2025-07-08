@@ -37,7 +37,7 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
 
   let userOrgCodes: string[] = [];
 
-  const url = `https://${kindeSubdomain}.kinde.com/api/v1/user?id=${userId}`;
+  const url = `https://${kindeSubdomain}.kinde.com/api/v1/user?id=${userId}&expand=organizations`;
   console.log("[Kinde API] URL called:", url);
 
   try {
