@@ -8,7 +8,7 @@ import {
 } from "@kinde/infrastructure";
 
 export const workflowSettings: WorkflowSettings = {
-  id: "enforceUserOrgOnlyWorkflow",
+  id: "enforceSpecificOrgWorkflow",
   name: "Enforce Whitelisted Org Membership (Based on User Orgs Only)",
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
