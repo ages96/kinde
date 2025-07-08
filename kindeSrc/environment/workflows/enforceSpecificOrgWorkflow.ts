@@ -45,19 +45,20 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const url = `https://${kindeSubdomain}.kinde.com/api/v1/user?id=${userId}&expand=organizations`;
   console.log("[Kinde API] URL called:", url);
 
-  try {
-    const { data } = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${secretToken}`,
-        "Content-Type": "application/json",
-      },
-    });
+	 try {
+	  const { data } = await fetch(url, {
+	    method: "GET",
+	    headers: {
+	      Authorization: `Bearer ${secretToken}`,
+	      "Content-Type": "application/json",
+	    },
+	  });
 
-    userOrgCodes = data.organizations?.map((org: any) => org.code?.toLowerCase()) || [];
-  } catch (err) {
-    console.error("❌ Error fetching user organizations:", err);
-  }
+	  // data.organizations is an array of strings, not objects
+	  userOrgCodes = data.organizations?.map((org: string) => org.toLowerCase()) || [];
+	} catch (err) {
+	  console.error("❌ Error fetching user organizations:", err);
+	}
 
   console.log("Org Enforcement Started", {
     userId,
