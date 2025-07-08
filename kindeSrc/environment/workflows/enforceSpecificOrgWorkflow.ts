@@ -42,25 +42,19 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const url = `https://${kindeSubdomain}.kinde.com/api/v1/user?id=${userId}&expand=organizations`;
   console.log("[Kinde API] URL called:", url);
 
-  try {
-    const response = await fetch(url,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${secretToken}`,
-        },
-      }
-    );
+   try {
+	  const { data } = await fetch(url, {
+	    method: "GET",
+	    headers: {
+	      Authorization: `Bearer ${secretToken}`,
+	      "Content-Type": "application/json",
+	    },
+	  });
 
-    if (response.ok) {
-      const json = await response.json();
-      userOrgCodes = json.organizations?.map((org: any) => org.code) || [];
-    } else {
-      console.warn("Failed to fetch user orgs from Kinde API:", response.statusText);
-    }
-  } catch (err) {
-    console.error("Error fetching user organizations:", err);
-  }
+	  userOrgCodes = data.organizations?.map((org: any) => org.code) || [];
+	} catch (err) {
+	  console.error("Error fetching user organizations:", err);
+	}
 
   const effectiveOrgCode = orgCodeParam || userOrgCodes[0];
 
@@ -80,3 +74,5 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
 
   console.log("✅ Access granted — This is in a whitelisted organization.");
 }
+
+
