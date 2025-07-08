@@ -24,7 +24,7 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const userId = user.id;
   const email = user.preferred_email || user.email;
   const clientId = event.context.application.clientId;
-  const selectedOrgCode = event.request?.authUrlParams?.org_code?.toLowerCase();
+  const selectedOrgCode = event.request?.authUrlParams?.orgCode?.toLowerCase();
 
   const envVarMap: Record<string, string> = {
     "356594637d424f898f233fa903510550": "ALLOWED_ORG_CODE_APP_1",
