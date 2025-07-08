@@ -24,21 +24,34 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const userId = user.id;
   const email = user.preferred_email || user.email;
 
-  console.log("Event",event);
+	const clientId = event.context.clientId;
+	const envVarMap: Record<string, string> = {
+	  "356594637d424f898f233fa903510550": "ALLOWED_ORG_CODE_APP_1",
+	  "85a80df21ff34367a5891535b931b877": "ALLOWED_ORG_CODE_APP_2"
+	};
 
-  const allowedOrgCodesStr = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
-  const kindeSubdomain = getEnvironmentVariable("KINDE_SUBDOMAIN")?.value;
-  const secretToken = getEnvironmentVariable("KINDE_SECRET_TOKEN")?.value;
+	const allowedOrgEnvVarKey = envVarMap[clientId];
 
-  if (!allowedOrgCodesStr || !kindeSubdomain || !secretToken) {
-    console.error("❌ Missing required environment variables.");
-    denyAccess("Server misconfigured — contact support.");
-    return;
-  }
+	if (!allowedOrgEnvVarKey) {
+	  console.warn(`No org code env var mapped for clientId: ${clientId}`);
+	  denyAccess("Unauthorized application client.");
+	  return;
+	}
 
-  const allowedOrgCodes = allowedOrgCodesStr
-    .split(",")
-    .map(code => code.trim().toLowerCase());
+	const allowedOrgCodesStr = getEnvironmentVariable(allowedOrgEnvVarKey)?.value;
+	const kindeSubdomain = getEnvironmentVariable("KINDE_SUBDOMAIN")?.value;
+	const secretToken = getEnvironmentVariable("KINDE_SECRET_TOKEN")?.value;
+
+	if (!allowedOrgCodesStr || !kindeSubdomain || !secretToken) {
+	  console.error("Missing required environment variables.");
+	  denyAccess("Server misconfigured — contact support.");
+	  return;
+	}
+
+	const allowedOrgCodes = allowedOrgCodesStr
+	  .split(",")
+	  .map(code => code.trim().toLowerCase());
+
 
   let userOrgCodes: string[] = [];
 
@@ -57,7 +70,7 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
 	  // data.organizations is an array of strings, not objects
 	  userOrgCodes = data.organizations?.map((org: string) => org.toLowerCase()) || [];
 	} catch (err) {
-	  console.error("❌ Error fetching user organizations:", err);
+	  console.error("Error fetching user organizations:", err);
 	}
 
   console.log("Org Enforcement Started", {
@@ -74,10 +87,10 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const matchingOrg = userOrgCodes.find(code => allowedOrgCodes.includes(code));
 
   if (!matchingOrg) {
-    console.warn("❌ Access denied: No matching org found in userOrgCodes.");
+    console.warn("Access denied: No matching org found in userOrgCodes.");
     denyAccess("Access denied. Your organization is not permitted.");
     return;
   }
 
-  console.log(`✅ Access granted — User is in allowed org (${matchingOrg})`);
+  console.log(`Access granted — User is in allowed org (${matchingOrg})`);
 }
