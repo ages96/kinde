@@ -9,13 +9,13 @@ import {
 
 export const workflowSettings: WorkflowSettings = {
   id: "enforceSpecificOrgWorkflow",
-  name: "Enforce Whitelisted Org Membership (Based on User Orgs Only)",
+  name: "Enforce Whitelisted Org Membership (Based on Selected Org + User Orgs)",
   failurePolicy: { action: "stop" },
   trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
     "kinde.auth": {},
     "kinde.env": {},
-    "kinde.fetch": {}
+    "kinde.fetch": {},
   },
 };
 
@@ -23,74 +23,76 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const user = event.context.user;
   const userId = user.id;
   const email = user.preferred_email || user.email;
+  const clientId = event.context.application.clientId;
+  const selectedOrgCode = event.request?.authUrlParams?.org_code?.toLowerCase();
 
-	const clientId = event.context.application.clientId;
-	const envVarMap: Record<string, string> = {
-	  "356594637d424f898f233fa903510550": "ALLOWED_ORG_CODE_APP_1",
-	  "85a80df21ff34367a5891535b931b877": "ALLOWED_ORG_CODE_APP_2"
-	};
+  const envVarMap: Record<string, string> = {
+    "356594637d424f898f233fa903510550": "ALLOWED_ORG_CODE_APP_1",
+    "85a80df21ff34367a5891535b931b877": "ALLOWED_ORG_CODE_APP_2",
+  };
 
-	const allowedOrgEnvVarKey = envVarMap[clientId];
+  const allowedOrgEnvVarKey = envVarMap[clientId];
 
-	if (!allowedOrgEnvVarKey) {
-	  console.warn(`No org code env var mapped for clientId: ${clientId}`);
-	  denyAccess("Unauthorized application client.");
-	  return;
-	}
+  if (!allowedOrgEnvVarKey) {
+    console.warn(`❌ No org code env var mapped for clientId: ${clientId}`);
+    denyAccess("Unauthorized application client.");
+    return;
+  }
 
-	const allowedOrgCodesStr = getEnvironmentVariable(allowedOrgEnvVarKey)?.value;
-	const kindeSubdomain = getEnvironmentVariable("KINDE_SUBDOMAIN")?.value;
-	const secretToken = getEnvironmentVariable("KINDE_SECRET_TOKEN")?.value;
+  const allowedOrgCodesStr = getEnvironmentVariable(allowedOrgEnvVarKey)?.value;
+  const kindeSubdomain = getEnvironmentVariable("KINDE_SUBDOMAIN")?.value;
+  const secretToken = getEnvironmentVariable("KINDE_SECRET_TOKEN")?.value;
 
-	if (!allowedOrgCodesStr || !kindeSubdomain || !secretToken) {
-	  console.error("Missing required environment variables.");
-	  denyAccess("Server misconfigured — contact support.");
-	  return;
-	}
+  if (!allowedOrgCodesStr || !kindeSubdomain || !secretToken) {
+    console.error("❌ Missing required environment variables.");
+    denyAccess("Server misconfigured — contact support.");
+    return;
+  }
 
-	const allowedOrgCodes = allowedOrgCodesStr
-	  .split(",")
-	  .map(code => code.trim().toLowerCase());
-
+  const allowedOrgCodes = allowedOrgCodesStr
+    .split(",")
+    .map(code => code.trim().toLowerCase());
 
   let userOrgCodes: string[] = [];
 
   const url = `https://${kindeSubdomain}.kinde.com/api/v1/user?id=${userId}&expand=organizations`;
   console.log("[Kinde API] URL called:", url);
 
-	 try {
-	  const { data } = await fetch(url, {
-	    method: "GET",
-	    headers: {
-	      Authorization: `Bearer ${secretToken}`,
-	      "Content-Type": "application/json",
-	    },
-	  });
+  try {
+    const { data } = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${secretToken}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-	  // data.organizations is an array of strings, not objects
-	  userOrgCodes = data.organizations?.map((org: string) => org.toLowerCase()) || [];
-	} catch (err) {
-	  console.error("Error fetching user organizations:", err);
-	}
+    // `organizations` is an array of strings
+    userOrgCodes = data.organizations?.map((org: string) => org.toLowerCase()) || [];
+  } catch (err) {
+    console.error("❌ Error fetching user organizations:", err);
+    denyAccess("Unable to verify your organization.");
+    return;
+  }
 
-  console.log("Org Enforcement Started", {
+  console.log("🧠 Org Enforcement Details", {
     userId,
+    email,
+    clientId,
+    selectedOrgCode,
     userOrgCodes,
     allowedOrgCodes,
   });
 
-  console.log("User info", {
-    email,
-    userOrgCodes,
-  });
-
-  const matchingOrg = userOrgCodes.find(code => allowedOrgCodes.includes(code));
-
-  if (!matchingOrg) {
-    console.warn("Access denied: No matching org found in userOrgCodes.");
-    denyAccess("Access denied. Your organization is not permitted.");
+  if (
+    !selectedOrgCode ||
+    !userOrgCodes.includes(selectedOrgCode) ||
+    !allowedOrgCodes.includes(selectedOrgCode)
+  ) {
+    console.warn("❌ Access denied: Selected org is not valid for this user/client.");
+    denyAccess("Access denied: Invalid or unauthorized organization.");
     return;
   }
 
-  console.log(`Access granted — User is in allowed org (${matchingOrg})`);
+  console.log(`✅ Access granted — org: ${selectedOrgCode}`);
 }
