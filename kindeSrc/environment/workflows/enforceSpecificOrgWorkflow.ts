@@ -6,6 +6,8 @@ import {
   denyAccess,
 } from "@kinde/infrastructure";
 
+import https from "node:https";
+
 export const workflowSettings: WorkflowSettings = {
   id: "enforceSpecificOrgWorkflow",
   name: "Enforce Whitelisted Org Membership",
@@ -16,6 +18,42 @@ export const workflowSettings: WorkflowSettings = {
     "kinde.env": {},
   },
 };
+
+// Helper function using native HTTPS module
+function getUserOrganizations(subdomain: string, userId: string, token: string): Promise<string[]> {
+  const url = `https://${subdomain}.kinde.com/api/v1/user?id=${userId}&expand=organizations`;
+
+  return new Promise((resolve, reject) => {
+    const req = https.get(
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          try {
+            const parsed = JSON.parse(data);
+            const orgs = parsed.organizations || [];
+            const codes = orgs.map((org: any) => org.code);
+            resolve(codes);
+          } catch (err) {
+            console.error("[Kinde API] Failed to parse response:", err);
+            reject(err);
+          }
+        });
+      }
+    );
+
+    req.on("error", (err) => {
+      console.error("[Kinde API] HTTPS request failed:", err);
+      reject(err);
+    });
+  });
+}
 
 export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const user = event.context.user;
@@ -37,32 +75,20 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
 
   let userOrgCodes: string[] = [];
 
-  const url = `https://${kindeSubdomain}.kinde.com/api/v1/user?id=${userId}&expand=organizations`;
-  console.log("[Kinde API] URL called:", url);
-
-  	try {
-	  const response = await fetch(url, {
-	    method: "GET",
-	    headers: {
-	      Authorization: `Bearer ${secretToken}`,
-	    },
-	  });
-
-	  if (response.ok) {
-	    const json = await response.json();
-	    userOrgCodes = json.organizations || [];
-	  } else {
-	    const errorText = await response.text();
-	    console.warn("Failed to fetch user orgs:", response.status, response.statusText, errorText);
-	  }
-	} catch (err) {
-	  console.error("Fetch threw an exception:", err?.message || err);
-	}
-
+  try {
+    userOrgCodes = await getUserOrganizations(kindeSubdomain, userId, secretToken);
+  } catch (err) {
+    console.warn("Could not fetch user organizations. Proceeding without them.");
+  }
 
   const effectiveOrgCode = orgCodeParam || userOrgCodes[0];
 
-  console.log("Org Enforcement Started", { userId, effectiveOrgCode, allowedOrgCodes });
+  console.log("Org Enforcement Started", {
+    userId,
+    allowedOrgCodes,
+    effectiveOrgCode,
+  });
+
   console.log("User info", {
     email,
     userOrgCodes,
