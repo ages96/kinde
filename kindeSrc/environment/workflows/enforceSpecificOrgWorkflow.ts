@@ -24,6 +24,8 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const userId = user.id;
   const email = user.preferred_email || user.email;
 
+  console.log("Event",event);
+
   const allowedOrgCodesStr = getEnvironmentVariable("ALLOWED_ORG_CODE")?.value;
   const kindeSubdomain = getEnvironmentVariable("KINDE_SUBDOMAIN")?.value;
   const secretToken = getEnvironmentVariable("KINDE_SECRET_TOKEN")?.value;
