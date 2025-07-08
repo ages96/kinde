@@ -15,6 +15,7 @@ export const workflowSettings: WorkflowSettings = {
   bindings: {
     "kinde.auth": {},
     "kinde.env": {},
+    "kinde.fetch": {}
   },
 };
 
@@ -41,25 +42,25 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   const url = `https://${kindeSubdomain}.kinde.com/api/v1/user?id=${userId}&expand=organizations`;
   console.log("[Kinde API] URL called:", url);
 
-  	try {
-	  const response = await fetch(url, {
-	    method: "GET",
-	    headers: {
-	      Authorization: `Bearer ${secretToken}`,
-	    },
-	  });
+  try {
+    const response = await fetch(url,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${secretToken}`,
+        },
+      }
+    );
 
-	  if (response.ok) {
-	    const json = await response.json();
-	    userOrgCodes = json.organizations || [];
-	  } else {
-	    const errorText = await response.text();
-	    console.warn("Failed to fetch user orgs:", response.status, response.statusText, errorText);
-	  }
-	} catch (err) {
-	  console.error("Fetch threw an exception:", err?.message || err);
-	}
-
+    if (response.ok) {
+      const json = await response.json();
+      userOrgCodes = json.organizations?.map((org: any) => org.code) || [];
+    } else {
+      console.warn("Failed to fetch user orgs from Kinde API:", response.statusText);
+    }
+  } catch (err) {
+    console.error("Error fetching user organizations:", err);
+  }
 
   const effectiveOrgCode = orgCodeParam || userOrgCodes[0];
 
