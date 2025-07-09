@@ -1,25 +1,28 @@
 import {
-  onPostAuthenticationEvent,
+  onUserTokenGeneratedEvent,
   WorkflowSettings,
   WorkflowTrigger,
   getEnvironmentVariable,
   denyAccess,
   fetch,
+  accessTokenCustomClaims,
 } from "@kinde/infrastructure";
 
+// Workflow settings
 export const workflowSettings: WorkflowSettings = {
   id: "enforceSpecificOrgWorkflow",
-  name: "Enforce Whitelisted Org Membership (Based on Selected Org + User Orgs)",
+  name: "Enforce Whitelisted Org on Token Generation",
+  trigger: WorkflowTrigger.UserTokenGeneration,
   failurePolicy: { action: "stop" },
-  trigger: WorkflowTrigger.PostAuthentication,
   bindings: {
-    "kinde.auth": {},
     "kinde.env": {},
     "kinde.fetch": {},
+    "kinde.accessToken": {}, // required for modifying token or denying access
   },
 };
 
-export default async function handlePostAuth(event: onPostAuthenticationEvent) {
+// Token generation logic
+export default async function handleTokenGeneration(event: onUserTokenGeneratedEvent) {
   const user = event.context.user;
   const userId = user.id;
   const clientId = event.context.application.clientId;
@@ -31,7 +34,6 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
   };
 
   const allowedOrgEnvVarKey = envVarMap[clientId];
-
   if (!allowedOrgEnvVarKey) {
     console.warn(`❌ No org code env var mapped for clientId: ${clientId}`);
     denyAccess("Unauthorized application client.");
@@ -66,7 +68,6 @@ export default async function handlePostAuth(event: onPostAuthenticationEvent) {
       },
     });
 
-    // `organizations` is an array of strings
     userOrgCodes = data.organizations?.map((org: string) => org.toLowerCase()) || [];
   } catch (err) {
     console.error("❌ Error fetching user organizations:", err);
