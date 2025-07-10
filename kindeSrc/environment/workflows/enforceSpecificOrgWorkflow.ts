@@ -68,6 +68,8 @@ export default async function handleTokenGeneration(event: onUserTokenGeneratedE
       },
     });
 
+    console.log("response API", data);
+
     userOrgCodes = data.organizations?.map((org: string) => org.toLowerCase()) || [];
   } catch (err) {
     console.error("❌ Error fetching user organizations:", err);
