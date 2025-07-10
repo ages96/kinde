@@ -58,6 +58,7 @@ export default async function handleTokenGeneration(event: onUserTokenGeneratedE
 
   const url = `https://${kindeSubdomain}.kinde.com/api/v1/user?id=${userId}&expand=organizations`;
   console.log("[Kinde API] URL called:", url);
+  console.log("[Header Token]",secretToken);
 
   try {
     const { data } = await fetch(url, {
